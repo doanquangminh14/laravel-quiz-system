@@ -8,22 +8,28 @@ use Illuminate\Support\Facades\Session;
 use App\Models\Admin;
 use App\Models\Category;
 use App\Models\Quiz;
+use App\Models\Mcq;
 
 
 class AdminController extends Controller
 {
-    //
+    
     function login(Request $request ){
+        //Kiểm tra các thực (Validation)
         $validation = $request->validate([
                   "name"=>"required",
                   "password"=>"required",
         ]);
-
+        
+        //Truy vấn Database để tìm Admin
         $admin = Admin::where([
             ['name',"=",$request->name],
             ['password',"=",$request->password],
         ])->first();
-
+// SELECT * FROM admin 
+// WHERE name = 'giá trị name người dùng nhập' 
+//   AND password = 'giá trị password người dùng nhập'
+// LIMIT 1;
 
         if(!$admin){
              $validation = $request->validate([
@@ -34,6 +40,7 @@ class AdminController extends Controller
         ]);
         }
         
+        //Đăng nhập thành công và lưu Session
         Session::put('admin',$admin);
         return redirect('dashboard');
 
@@ -114,4 +121,29 @@ class AdminController extends Controller
             return redirect('admin-login');
         }
      }
+
+function addMCQs(Request $request){
+        $mcq= new Mcq();
+        $quiz= Session::get('quizDetails');
+        $admin= Session::get('admin');
+        $mcq->question= $request->question;
+        $mcq->a= $request->a;
+        $mcq->b= $request->b;
+        $mcq->c= $request->c;
+        $mcq->d= $request->d;
+        $mcq->correct_ans= $request->correct_ans;
+        $mcq->admin_id= $admin->id;
+        $mcq->quiz_id= $quiz->id;
+        $mcq->category_id= $quiz->category_id;
+        if($mcq->save()){
+           if($request->submit=="add-more"){
+            return redirect(url()->previous());
+           }else{
+            Session::forget('quizDetails');
+            return redirect("/admin-categories");
+           }
+        }
+
+    }
+     
 }
