@@ -173,5 +173,15 @@ function addMCQs(Request $request){
             return redirect('admin-login');
         }
     }
-    
+
+
+    function quizList($id,$category){
+        $admin = Session::get('admin');
+       if($admin){
+        $quizData=Quiz::where('category_id',$id)->get();
+           return view('quiz-list',["name"=>$admin->name,"quizData"=>$quizData,'category'=>$category]);
+       }else{
+           return redirect('admin-login');
+       }
+    }
 }
