@@ -98,29 +98,33 @@ class AdminController extends Controller
         }
      }
 
-     function addQuiz(){
-        
+         function addQuiz(){
+      
         $admin = Session::get('admin');
         $categories= Category::get();
+        $totalMCQs=0;
         if($admin){
-             $quizName = request('quiz');
-             $category_id = request('category_id');
+             $quizName=request('quiz');
+             $category_id=request('category_id');
 
             if($quizName && $category_id && !Session::has('quizDetails')){
-                $quiz = new Quiz();
+                $quiz= new Quiz();
                 $quiz->name=$quizName;
                 $quiz->category_id=$category_id;
                 if($quiz->save()){
                     Session::put('quizDetails',$quiz);
                 }
-               
+
+            }else{
+                $quiz= Session::get('quizDetails');
+                $totalMCQs = $quiz && Mcq::where('quiz_id',$quiz->id)->count();
             }
 
-            return view('add-quiz',["name"=>$admin->name,"categories"=>$categories]);
+            return view('add-quiz',["name"=>$admin->name,"categories"=>$categories,"totalMCQs"=>$totalMCQs]);
         }else{
             return redirect('admin-login');
         }
-     }
+    }
 
 function addMCQs(Request $request){
         $request->validate([
@@ -158,4 +162,16 @@ function addMCQs(Request $request){
         Session::forget('quizDetails');
             return redirect("/admin-categories");
     }
+
+    function showQuiz($id,$quizName){
+      
+        $admin = Session::get('admin');
+         $mcqs=Mcq::where('quiz_id',$id)->get();
+        if($admin){
+            return view('show-quiz',["name"=>$admin->name,"mcqs"=>$mcqs,'quizName'=>$quizName]);
+        }else{
+            return redirect('admin-login');
+        }
+    }
+    
 }
