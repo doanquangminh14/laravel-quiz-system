@@ -9,52 +9,47 @@ use App\Models\Admin;
 use App\Models\Category;
 use App\Models\Quiz;
 use App\Models\Mcq;
+use App\Models\User;
+
 
 
 class AdminController extends Controller
 {
-    
-    function login(Request $request ){
-        //Kiểm tra các thực (Validation)
+    //
+
+    function login(Request $request){
+ 
         $validation = $request->validate([
-                  "name"=>"required",
-                  "password"=>"required",
-        ]);
-        
-        //Truy vấn Database để tìm Admin
+            "name"=>"required",
+            "password"=>"required",
+        ]); 
+
         $admin = Admin::where([
             ['name',"=",$request->name],
             ['password',"=",$request->password],
         ])->first();
-// SELECT * FROM admin 
-// WHERE name = 'giá trị name người dùng nhập' 
-//   AND password = 'giá trị password người dùng nhập'
-// LIMIT 1;
 
         if(!$admin){
-             $validation = $request->validate([
-              "user"=>"required",
-                
-        ],[
-            "user.required"=>"User does not exist"
-        ]);
+            $validation = $request->validate([
+                "user"=>"required",
+            ],[
+                "user.required"=>"User does not exist"
+            ]); 
         }
-        
-        //Đăng nhập thành công và lưu Session
+       
         Session::put('admin',$admin);
         return redirect('dashboard');
 
     }
 
-
     function dashboard(){
         $admin = Session::get('admin');
         if($admin){
-            return view('admin',["name"=>$admin->name]);
+            $users= User::orderBy('id','desc')->paginate(10);
+            return view('admin',["name"=>$admin->name,'users'=>$users]);
         }else{
             return redirect('admin-login');
         }
-        
     }
 
     function categories(){
@@ -65,14 +60,10 @@ class AdminController extends Controller
         }else{
             return redirect('admin-login');
         }
-        
     }
-
     function logout(){
         Session::forget('admin');
         return redirect('admin-login');
-
-
     }
 
     function addCategory(Request $request){
@@ -80,25 +71,27 @@ class AdminController extends Controller
             "category"=>"required | min:3 | unique:categories,name"
         ]);
         $admin = Session::get('admin');
-        $category = new Category;
+        $category= new Category();
         $category->name=$request->category;
         $category->creator=$admin->name;
-        if($category->save()){
-            Session::flash('category',"Success : Category ".$request->category. " Added");
-        }
-        return redirect("admin-categories") ;
+       if($category->save()){
+       Session::flash('category',"Success : Category ".$request->category . " Added.");
+       }
+        return redirect("admin-categories");
     }
 
-  
-     function deleteCategory($id){
+    function deleteCategory($id){
+        
         $isDeleted= Category::find($id)->delete();
         if($isDeleted){
-            Session::flash('category',"Success : Category deleted.");
-             return redirect("admin-categories") ;
-        }
-     }
+       Session::flash('category',"Success : Category deleted.");
+       return redirect("admin-categories");
 
-         function addQuiz(){
+        }
+
+    }
+
+    function addQuiz(){
       
         $admin = Session::get('admin');
         $categories= Category::get();
@@ -126,15 +119,15 @@ class AdminController extends Controller
         }
     }
 
-function addMCQs(Request $request){
+    function addMCQs(Request $request){
+       
         $request->validate([
-               "question"=>"required | min:5",
-               "a"=>"required" ,
-               "b"=>"required ",
-               "c"=>"required ",
-               "d"=>"required ",
-               "correct_ans"=> "required",
-               
+            "question"=>"required | min:5",
+            "a"=>"required ",
+            "b"=>"required",
+            "d"=>"required",
+            "c"=>"required",
+            "correct_ans"=>"required",
         ]);
         $mcq= new Mcq();
         $quiz= Session::get('quizDetails');
@@ -156,8 +149,8 @@ function addMCQs(Request $request){
             return redirect("/admin-categories");
            }
         }
+
     }
-     
     function endQuiz(){
         Session::forget('quizDetails');
             return redirect("/admin-categories");
@@ -173,7 +166,6 @@ function addMCQs(Request $request){
             return redirect('admin-login');
         }
     }
-
 
     function quizList($id,$category){
         $admin = Session::get('admin');
