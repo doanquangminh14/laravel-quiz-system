@@ -86,6 +86,13 @@ function userLogout(){
       return redirect('/');
     }
 
+    function userSignupQuiz(){
+     Session::put('quiz-url',url()->previous());
+      return view('user-signup');
+    }
+
+
+
     function userLogin(Request $request){
       $validate = $request->validate([
         'email'=>'required | email',
@@ -113,10 +120,11 @@ function userLogout(){
       
 }
 
-function userSignupQuiz(){
-     Session::put('quiz-url',url()->previous());
-      return view('user-signup');
-    }
+
+function userLoginQuiz(){
+  Session::put('quiz-url',url()->previous());
+   return view('user-login');
+ }
 
  function mcq($id,$name){
   $record= new Record();

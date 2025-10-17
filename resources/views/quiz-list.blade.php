@@ -9,7 +9,7 @@
     <x-navbar  name={{$name}} ></x-navbar>
  
     <div class="bg-gray-100 flex flex-col items-center min-h-screen pt-5">
-    <h2 class="text-2xl text-center text-gray-800 mb-6 ">category Name : {{$category}}
+    <h2 class="text-2xl text-center text-gray-800 mb-6 ">Category Name : {{$category}}
          <a class="text-yellow-500 text-sm" href="/add-quiz" >Back</a>
          </h2>
     <div class="w-200">
