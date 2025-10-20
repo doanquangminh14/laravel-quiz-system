@@ -15,4 +15,17 @@ class Record extends Model
     function quiz(){
         return $this->belongsTo(Quiz::class);
     }
+
+    public function user() 
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function getAccuracyPercentageAttribute()
+    {
+        if ($this->total_questions == 0) {
+            return 0;
+        }
+        return round(($this->correct_answers / $this->total_questions) * 100);
+    }
 }

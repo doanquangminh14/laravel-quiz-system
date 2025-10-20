@@ -65,7 +65,8 @@ Route::get('quiz-list/{id}/{category}',[AdminController::class,'quizList']);
 });
 
 
+//Tuyến đường cho Bảng xếp hạng (Leaderboard)
 
-
-
+Route::get('leaderboard', [UserController::class, 'leaderboard'])->name('leaderboard');
+Route::get('leaderboard/category/{categoryId}', [UserController::class, 'leaderboard'])->name('leaderboard.category');
 

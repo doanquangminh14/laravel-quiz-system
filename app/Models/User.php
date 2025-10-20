@@ -45,4 +45,10 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function records()
+    {
+        // Giả định khóa ngoại trong bảng 'records' là 'user_id'
+        return $this->hasMany(Record::class);
+    }
 }

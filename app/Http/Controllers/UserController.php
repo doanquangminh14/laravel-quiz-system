@@ -12,6 +12,7 @@ use App\Models\Mcq;
 use App\Models\User;
 use App\Models\Record;
 use App\Models\MCQ_Record;
+use Carbon\Carbon;
 
 class UserController extends Controller{
     function welcome(){
@@ -147,61 +148,80 @@ function userLoginQuiz(){
   }
  }
 
- function submitAndNext(Request $request, $id){
-  $currentQuiz= Session::get('currentQuiz');
-   $currentQuiz['currentMcq']+=1;
-   $mcqData = MCQ::where([
-    ['id','>',$id],
-  ['quiz_id','=',$currentQuiz['quizId']]
-  ])->first();
+function submitAndNext(Request $request, $id){
+    $currentQuiz= Session::get('currentQuiz');
+    $currentQuiz['currentMcq']+=1;
+    
+    // 1. Tìm câu hỏi tiếp theo
+    $mcqData = MCQ::where([
+        ['id','>',$id],
+        ['quiz_id','=',$currentQuiz['quizId']]
+    ])->first();
 
-   $isExist= MCQ_Record::where([
-    ['record_id','=',$currentQuiz['recordId']],
-    ['mcq_id','=',$request->id],
-  ])->count();
-  if($isExist<1){
-    $mcq_record= new MCQ_Record;
-    $mcq_record->record_id=$currentQuiz['recordId'];
-    $mcq_record->user_id=Session::get('user')->id;
-    $mcq_record->mcq_id=$request->id;
-    $mcq_record->select_answer=$request->option;
-    if($request->option ==  MCQ::find($request->id)->correct_ans)
-    {
-      $mcq_record->is_correct=1;
+    // 2. Kiểm tra và Lưu MCQ_Record (Đã tồn tại)
+    $isExist = MCQ_Record::where([
+        ['record_id','=',$currentQuiz['recordId']],
+        ['mcq_id','=',$request->id],
+    ])->count();
+    
+    if($isExist < 1){
+        $mcq_record = new MCQ_Record;
+        $mcq_record->record_id = $currentQuiz['recordId'];
+        $mcq_record->user_id = Session::get('user')->id;
+        $mcq_record->mcq_id = $request->id;
+        $mcq_record->select_answer = $request->option;
+        
+        if($request->option == MCQ::find($request->id)->correct_ans){
+            $mcq_record->is_correct = 1;
+        } else {
+            $mcq_record->is_correct = 0;
+        }
+    
+        if(!$mcq_record->save()){
+            return "something went wrong";
+        }
+    }
+    
+    // 3. Cập nhật Session
+    Session::put('currentQuiz',$currentQuiz);
+
+    // 4. Quyết định: Chuyển tiếp hay Kết thúc Quiz
+    if($mcqData){
+        // Hiển thị câu hỏi tiếp theo
+        return view('mcq-page',['quizName'=>$currentQuiz['quizName'],'mcqData'=>$mcqData]);
     }else{
-      $mcq_record->is_correct=0;
+        // ------------- LOGIC KẾT THÚC QUIZ (FIX LỖI 0 ĐIỂM) -------------
+
+        // Tính tổng điểm (Đếm số câu trả lời đúng)
+        $correctAnswers = MCQ_Record::where([
+            ['record_id','=',$currentQuiz['recordId']],
+            ['is_correct','=',1],
+        ])->count();
+
+        // Lấy Record chính
+        $record = Record::find($currentQuiz['recordId']);
+        
+        if($record){
+            // Gán điểm thực tế vào cột 'score' (Đây là FIX QUAN TRỌNG NHẤT)
+            $record->score = $correctAnswers; 
+            
+            // Cập nhật trạng thái hoàn thành
+            $record->status = 2; 
+            
+            // Lưu cả score và status vào database
+            $record->update(); 
+            
+            // Nếu Observer đã được đăng ký, nó sẽ tự động kích hoạt tại đây 
+            // để cập nhật cột total_score trong bảng users.
+        }
+
+        // Lấy dữ liệu chi tiết kết quả (nếu cần cho trang result)
+        $resultData = MCQ_Record::WithMCQ()->where('record_id',$currentQuiz['recordId'])->get();
+
+        // Hiển thị trang kết quả
+        return view('quiz-result',['resultData'=>$resultData,'correctAnswers'=>$correctAnswers]);
     }
-  
-    if(!$mcq_record->save())
-    {
-      return "something went wrong";
-    }
-  }
- 
- 
-
-
-  Session::put('currentQuiz',$currentQuiz);
-if($mcqData){
-  return view('mcq-page',['quizName'=>$currentQuiz['quizName'],'mcqData'=>$mcqData]);
-}else{
-
-   $resultData=MCQ_record::WithMCQ()->where('record_id',$currentQuiz['recordId'])->get();
-   $correctAnswers=MCQ_record::where([
-    ['record_id','=',$currentQuiz['recordId']],
-    ['is_correct','=',1],
-
-   ])->count();
-
-   $record = Record::find($currentQuiz['recordId']);
-   if($record){
-    $record->status=2;
-    $record->update();
-   }
-  return view('quiz-result',['resultData'=>$resultData,'correctAnswers'=>$correctAnswers]);
 }
-
- }
 
   function userDetails(){
    $quizRecord = Record::WithQuiz()->where('user_id',Session::get('user')->id)->get();
@@ -227,4 +247,94 @@ if($mcqData){
  }
 
  }
+function leaderboard(Request $request)
+    {
+        // 1. Lấy thông tin lọc từ Request
+        $timeFilter = $request->get('time', 'all'); // 'all', 'week', 'month'
+        $categoryId = $request->get('category'); // ID Category
+        $searchName = $request->get('search'); // Tìm kiếm người chơi
+
+        // 2. Thiết lập bộ lọc thời gian
+        $startDate = null;
+        if ($timeFilter === 'week') {
+            $startDate = Carbon::now()->startOfWeek();
+        } elseif ($timeFilter === 'month') {
+            $startDate = Carbon::now()->startOfMonth();
+        }
+
+        // 3. Xây dựng Truy vấn Cơ sở (Aggregation)
+        $query = Record::select('user_id')
+            ->selectRaw('SUM(score) as total_score')
+            ->selectRaw('COUNT(id) as quizzes_completed')
+            ->selectRaw('SUM(correct_answers) as total_correct_answers')
+            ->selectRaw('SUM(total_questions) as total_total_questions')
+            ->where('status', 2); // Đã hoàn thành
+
+        // Lọc theo thời gian
+        if ($startDate) {
+            $query->where('created_at', '>=', $startDate);
+        }
+
+        // Lọc theo Category
+        if ($categoryId) {
+            $query->whereHas('quiz', function ($q) use ($categoryId) {
+                $q->where('category_id', $categoryId);
+            });
+        }
+
+        // Nhóm và sắp xếp
+        $leaderboardData = $query->groupBy('user_id')
+            ->orderByDesc('total_score')
+            ->get();
+            
+        // 4. Lấy thông tin User (sử dụng User Model để hiển thị)
+        $leaderboardUsers = User::whereIn('id', $leaderboardData->pluck('user_id'))
+            ->with(['records' => function($q) use ($startDate, $categoryId) {
+                // Tải trước các Record đã lọc (nếu cần)
+            }])
+            ->get()
+            ->map(function ($user) use ($leaderboardData) {
+                // Gắn dữ liệu thống kê vào đối tượng User
+                $stats = $leaderboardData->where('user_id', $user->id)->first();
+                $user->total_score = $stats->total_score;
+                $user->quizzes_completed = $stats->quizzes_completed;
+                
+                // Tính toán tỷ lệ chính xác (%)
+                if ($stats->total_total_questions > 0) {
+                    $user->accuracy = round(($stats->total_correct_answers / $stats->total_total_questions) * 100, 1);
+                } else {
+                    $user->accuracy = 0;
+                }
+                
+                // Giả định bạn đã có cột streak trong Model User
+                // $user->streak = $user->current_streak; 
+                
+                return $user;
+            })
+            // Sắp xếp lại sau khi map (rất quan trọng)
+            ->sortByDesc('total_score')
+            ->values(); // Reset keys
+
+        // 5. Áp dụng tìm kiếm người chơi (trên tập dữ liệu đã có)
+        if ($searchName) {
+            $leaderboardUsers = $leaderboardUsers->filter(function ($user) use ($searchName) {
+                return str_contains(strtolower($user->name), strtolower($searchName));
+            })->values();
+        }
+
+        // Lấy User hiện tại (để so sánh điểm)
+        $currentUser = Session::get('user');
+        
+        // 6. Phân tách Top 3
+        $top3 = $leaderboardUsers->take(3);
+        $restOfBoard = $leaderboardUsers->skip(3)->take(17); // Lấy 17 người tiếp theo (Top 20)
+
+        return view('leaderboard', [
+            'top3' => $top3,
+            'restOfBoard' => $restOfBoard,
+            'allCategories' => Category::all(),
+            'currentUserId' => $currentUser ? $currentUser->id : null,
+            'currentFilters' => ['time' => $timeFilter, 'category' => $categoryId],
+        ]);
+    }
 }
