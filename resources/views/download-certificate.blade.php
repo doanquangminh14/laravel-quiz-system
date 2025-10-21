@@ -2,30 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chứng chỉ Hoàn thành Quiz</title>
+    <title>Certificate</title>
     @vite('resources/css/app.css')
-    
-    <style>
-        .certificate-border {
-           
-            border-style: double; 
-            border-width: 10px;
-            border-color: #008080; 
-        }
-    </style>
 </head>
-<body class="bg-gray-50 flex flex-col items-center min-h-screen">
+<body class="pt-10 text-center">
 
-   
-    <div class="w-full max-w-4xl flex justify-between pt-8 pb-4 px-4 sm:px-0">
-        <a class="text-gray-600 hover:text-green-600 font-semibold transition duration-150" href="/">← Quay lại Trang chủ</a>
-        <a class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-150" 
-           href="/download-certificate">
-            Tải xuống (PDF)
-        </a>
-    </div>
-
-    
     <div class="w-full max-w-4xl certificate-border bg-white shadow-2xl p-12 sm:p-20 text-center mt-4 mb-20 rounded-lg">
         <h1 class="text-6xl font-serif font-extrabold text-green-700 mb-8 flex items-center justify-center space-x-4 tracking-wider">
             <svg xmlns="http://www.w3.org/2000/svg" height="60px" viewBox="0 -960 960 960" width="60px" fill="#047857" class="self-start"><path d="m385-412 36-115-95-74h116l38-119 37 119h117l-95 74 35 115-94-71-95 71ZM244-40v-304q-45-47-64.5-103T160-560q0-136 92-228t228-92q136 0 228 92t92 228q0 57-19.5 113T716-344v304l-236-79-236 79Zm236-260q109 0 184.5-75.5T740-560q0-109-75.5-184.5T480-820q-109 0-184.5 75.5T220-560q0 109 75.5 184.5T480-300ZM304-124l176-55 176 55v-171q-40 29-86 42t-90 13q-44 0-90-13t-86-42v171Zm176-86Z"/></svg>
