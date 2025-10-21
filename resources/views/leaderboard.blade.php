@@ -86,13 +86,9 @@
                 @foreach($restOfBoard as $index => $user)
                     <tr class="{{ $user->id == $currentUserId ? 'bg-green-100 font-bold' : 'hover:bg-gray-50' }}">
                         {{-- Hạng + 4 vì đã bỏ qua Top 3 --}}
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">{{ $index + 4 }}</td> 
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">{{ $index + 1 }}</td> 
                         
-                        <td class="px-6 py-4 whitespace-nowrap text-sm flex items-center">
-                            {{-- Giả định User có avatar --}}
-                            <img src="{{ asset($user->avatar ?? 'images/default-avatar.png') }}" class="w-8 h-8 rounded-full mr-3 border-2 border-green-500" alt="Avatar">
-                            {{ $user->name }}
-                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-semibold">{{ $user->name }} </td>
 
                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-green-600">{{ number_format($user->total_score) }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm">{{ $user->accuracy }}%</td>

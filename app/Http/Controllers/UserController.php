@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Crypt;
+use Spatie\Browsershot\Browsershot;
 use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Models\Quiz;
@@ -246,6 +247,30 @@ function submitAndNext(Request $request, $id){
   }
  }
 
+ }
+
+  function certificate(){
+  $data=[];
+
+  $data['quiz']= str_replace('-',' ',Session::get('currentQuiz')['quizName']);
+  $data['name']= Session::get('user')['name'];
+  return  view('certificate',['data'=>$data]);
+ }
+
+ function downloadCertificate(){
+  $data=[];
+  $data['quiz']= str_replace('-',' ',Session::get('currentQuiz')['quizName']);
+  $data['name']= Session::get('user')['name'];
+  $html=  view('download-certificate',['data'=>$data])->render();
+  return response(
+    Browsershot::html($html)->pdf()
+  )->withHeaders(
+    [
+      'Content-Type'=>"application/pdf",
+      'Content-disposition'=>"attachment;filename=certificate.pdf"
+    ]
+    );
+  
  }
 function leaderboard(Request $request)
     {
