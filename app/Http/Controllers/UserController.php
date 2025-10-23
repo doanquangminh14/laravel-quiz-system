@@ -353,4 +353,18 @@ public function leaderboard(Request $request)
         'search' => $search,
     ]);
 }
+
+public function quizListUser($id, $category)
+{
+    // Lấy thông tin danh mục
+    $categoryData = Category::findOrFail($id);
+
+    // Lấy danh sách quiz theo danh mục
+    $quizzes = Quiz::where('category_id', $id)->get();
+
+    // Trả về view và truyền dữ liệu
+    return view('quiz-list-user', compact('categoryData', 'quizzes'));
+}
+
+
 }

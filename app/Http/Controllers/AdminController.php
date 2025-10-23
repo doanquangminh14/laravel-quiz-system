@@ -183,4 +183,12 @@ class AdminController extends Controller
            return redirect('admin-login');
        }
     }
+
+    public function mcq($id, $name)
+{
+    $quiz = Quiz::findOrFail($id);
+    $questions = $quiz->questions; // nếu bạn có quan hệ Quiz -> Questions
+
+    return view('mcq', compact('quiz', 'questions'));
+}
 }

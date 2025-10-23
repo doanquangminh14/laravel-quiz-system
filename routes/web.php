@@ -74,3 +74,13 @@ Route::get('/user-signup-quiz', function () {
     Session::put('quiz-url', url()->previous());
     return redirect()->route('register');
 })->name('user.signup.quiz');
+
+Route::get('/quiz-list/{categoryId?}/{categoryName?}', [UserController::class, 'quizList'])
+    ->name('user.quiz.list');
+
+
+
+Route::get('/quiz-list-user/{id}/{category}', [UserController::class, 'quizListUser'])
+    ->name('user.quiz.list');
+Route::get('/mcq/{id}/{name}', [UserController::class, 'mcq'])
+    ->name('mcq');
