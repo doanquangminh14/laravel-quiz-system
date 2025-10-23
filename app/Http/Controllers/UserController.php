@@ -300,77 +300,57 @@ function submitAndNext(Request $request, $id)
 
 
 
-function leaderboard(Request $request)
+public function leaderboard(Request $request)
 {
-    $searchName = $request->input('search');
+    $search = $request->input('search');
+    $categoryId = $request->input('category');
 
-    // 1. Truy vấn Lấy dữ liệu Tổng hợp (Aggregation)
-    $leaderboardStats = Record::select('records.user_id')
-        // Dữ liệu Tổng thể
+    // 🧠 1. Tạo query thống kê
+    $query = Record::select('records.user_id')
+        ->leftJoin('quizzes', 'records.quiz_id', '=', 'quizzes.id')
+
         ->selectRaw('SUM(records.score) as total_score')
-        ->selectRaw('SUM(records.total_questions) as total_total_questions') 
-        // Sửa lỗi cũ: lấy score làm total_correct_answers
-        ->selectRaw('SUM(records.score) as total_correct_answers') 
-        
-        // Dữ liệu MỚI theo yêu cầu
-        ->selectRaw('MAX(records.score) as highest_score') // Điểm cao nhất
-        ->selectRaw('COUNT(DISTINCT records.quiz_id) as quizzes_attempted') // Số Quiz đã làm
-        ->selectRaw('MAX(records.created_at) as last_attempted') // Lần cuối làm
-
-        ->where('records.status', 2) 
+        ->selectRaw('MAX(records.score) as highest_score')
+        ->selectRaw('COUNT(DISTINCT records.quiz_id) as quizzes_attempted')
+        ->selectRaw('MAX(records.created_at) as last_attempted')
         ->groupBy('records.user_id')
-        ->orderByDesc('total_score') // Xếp hạng theo Tổng điểm
-        ->orderByDesc('highest_score') // Nếu tổng điểm bằng nhau, xếp theo Điểm cao nhất
-        ->get();
+        ->orderByDesc('total_score')
+        ->orderByDesc('highest_score');
 
-    // 2. Tải thông tin User và gộp (merge)
-    $userIds = $leaderboardStats->pluck('user_id')->all();
+    // 🧩 2. Nếu có chọn chủ đề thì lọc theo category_id
+    if ($categoryId) {
+        $query->where('quizzes.category_id', $categoryId);
+    }
+
+    $leaderboard = $query->get();
+
+    // 🔗 3. Gắn thông tin user tương ứng
+    $userIds = $leaderboard->pluck('user_id');
     $users = User::whereIn('id', $userIds)->get()->keyBy('id');
 
-    // 3. Map dữ liệu thống kê vào User
-    $leaderboardUsers = $leaderboardStats->map(function ($stats) use ($users) {
-        $user = $users->get($stats->user_id);
-        if (!$user) {
-            return null; // Bỏ qua nếu user đã bị xóa
-        }
+    $leaderboard = $leaderboard->map(function ($item) use ($users) {
+        $user = $users->get($item->user_id);
+        if (!$user) return null;
+        $item->name = $user->name;
+        return $item;
+    })->filter()->values();
 
-        // Gán các thuộc tính tổng hợp
-        $user->total_score = $stats->total_score;
-        $user->highest_score = $stats->highest_score;
-        $user->quizzes_attempted = $stats->quizzes_attempted;
-        $user->last_attempted = $stats->last_attempted;
-
-        // Tính Accuracy (Giữ lại logic cũ)
-        $totalQuestions = $stats->total_total_questions ?? 0;
-        $correctAnswers = $stats->total_correct_answers ?? 0;
-        
-        $user->accuracy = ($totalQuestions > 0) ? round(($correctAnswers / $totalQuestions) * 100, 1) : 0;
-
-        return $user;
-    })->filter()->values(); 
-
-    // 4. Áp dụng tìm kiếm (nếu có)
-    if ($searchName) {
-        $leaderboardUsers = $leaderboardUsers->filter(function ($user) use ($searchName) {
-            return str_contains(strtolower($user->name), strtolower($searchName));
+    // 🔍 4. Lọc theo tên nếu có
+    if ($search) {
+        $leaderboard = $leaderboard->filter(function ($u) use ($search) {
+            return str_contains(strtolower($u->name), strtolower($search));
         })->values();
     }
-    
-    // 5. Phân tách Top 3 và phần còn lại
-    $currentUser = Session::get('user');
-    $top3 = $leaderboardUsers->take(3);
-    $restOfBoard = $leaderboardUsers->skip(3); 
 
+    // 📚 5. Lấy danh sách chủ đề
+    $categories = Category::all();
+
+    // 👑 6. Trả về view
     return view('leaderboard', [
-        'top3' => $top3,
-        'restOfBoard' => $restOfBoard,
-        'leaderboardUsers' => $leaderboardUsers,
-        'currentUserId' => $currentUser ? $currentUser->id : null,
-        
-        'currentFilters' => ['time' => 'Tổng thể'], // Giữ lại cho UI
-        'allCategories' => Category::all(), // Giữ lại cho UI
+        'leaderboard' => $leaderboard,
+        'categories' => $categories,
+        'selectedCategory' => $categoryId,
+        'search' => $search,
     ]);
 }
-
-
 }

@@ -33,7 +33,7 @@ Route::get('user-quiz-list/{id}/{category}', [UserController::class, 'userQuizLi
 Route::get('start-quiz/{id}/{name}', [UserController::class, 'startQuiz'])->middleware('auth');;
 Route::get('search-quiz', [UserController::class, 'searchQuiz']);
 Route::get('leaderboard', [UserController::class, 'leaderboard'])->name('leaderboard');
-Route::get('leaderboard/category/{categoryId}', [UserController::class, 'leaderboard'])->name('leaderboard.category');
+//Route::get('leaderboard/category/{categoryId}', [UserController::class, 'leaderboard'])->name('leaderboard.category');
 
 
 Route::middleware('auth')->group(function () {
