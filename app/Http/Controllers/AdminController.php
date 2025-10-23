@@ -61,10 +61,17 @@ class AdminController extends Controller
             return redirect('admin-login');
         }
     }
-    function logout(){
-        Session::forget('admin');
-        return redirect('admin-login');
-    }
+    // function logout(){
+    //     Session::forget('admin');
+    //     return redirect('/');
+    // }
+
+     function logout(){
+    Session::forget('admin');
+    Session::forget('user');
+    Session::flush();
+    return redirect('/');
+     }
 
     function addCategory(Request $request){
         $validation = $request->validate([

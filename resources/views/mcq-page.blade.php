@@ -3,55 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <title>MCQ Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @vite('resources/css/app.css')
+    <style>
+        /* Tùy chỉnh trạng thái input radio khi được chọn */
+        input[type="radio"]:checked + span {
+            font-weight: 700; /* bold */
+            color: #166534; /* green-800 */
+        }
+    </style>
 </head>
-<body>
-    <x-user-navbar ></x-user-navbar>
+<body class="bg-gray-50 font-sans">
+    
+    <x-user-navbar></x-user-navbar>
+    
     @if(session('message'))
-<p class="text-green-500">{{'message'}}</p>
-@endif
-    <div class="bg-gray-100 flex flex-col items-center min-h-screen pt-5">
-    <h1 class="text-2xl text-center text-green-800 mb-6 font-bold ">
-        {{$quizName}}
-    </h1>
-    <h2 class="text-2xl text-center text-green-800 mb-6 font-bold ">
-       Question No. {{session('currentQuiz')['totalMcq']}}
-    </h2>
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 text-center font-medium shadow-sm">
+            <p>{{ session('message') }}</p>
+        </div>
+    @endif
+    
+    <div class="flex flex-col items-center min-h-screen pt-10 px-4 sm:px-6 lg:px-8">
+        
+        <div class="w-full max-w-xl text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-2">
+                {{ $quizName }}
+            </h1>
+            <h2 class="text-xl font-bold text-green-600">
+                Câu hỏi <span class="text-2xl">{{ session('currentQuiz')['currentMcq'] }}</span> / {{ session('currentQuiz')['totalMcq'] }}
+            </h2>
+        </div>
+        
+        <div class="p-6 sm:p-8 bg-white shadow-2xl rounded-xl w-full max-w-xl border border-gray-200">
+            
+            <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-4 border-gray-100">
+                {{ $mcqData->question }}
+            </h3>
+            
+            <form action="/submit-next/{{$mcqData->id}}" class="space-y-4" method="post">
+                @csrf
+                <input type="hidden" name="id" value="{{$mcqData->id}}">
+                
+                @php 
+                    $options = ['a' => $mcqData->a, 'b' => $mcqData->b, 'c' => $mcqData->c, 'd' => $mcqData->d];
+                    $i = 1;
+                @endphp
 
-    <h2 class="text-xl text-center text-green-800 mb-6 font-bold ">
-    {{session('currentQuiz')['currentMcq']}}  of {{session('currentQuiz')['totalMcq']}}
-    </h2>
-
-  <div class="mt-2 p-4 bg-white shadow-2xl rounded-xl w-140">
-    <h3 class="text-green-900 font-bold text-xl mb-1" >{{$mcqData->question}}</h3>
-    <form action="/submit-next/{{$mcqData->id}}" class="space-y-4" method="post">
-        @csrf
-        <input type="hidden" name="id" value="{{$mcqData->id}}">
-    <label for="option_1" class="flex border p-3 mt-2 rounded-2xl shadow-2xl cursor-pointer hover:bg-blue-50">
-        <input id="option_1" class="form-radio text-blue-500" type="radio" value="a" name="option">
-        <span class="text-green-900 pl-2" >{{$mcqData->a}}</span>
-    </label>
-    <label for="option_2"  class="flex border p-3 mt-2 rounded-2xl shadow-2xl">
-        <input id="option_2" class="form-radio text-blue-500" type="radio" value="b" name="option">
-        <span class="text-green-900 pl-2" >{{$mcqData->b}}</span>
-    </label>
-    <label for="option_3"  class="flex border p-3 mt-2 rounded-2xl shadow-2xl">
-        <input id="option_3" class="form-radio text-blue-500" type="radio" value="c" name="option">
-        <span class="text-green-900 pl-2" >{{$mcqData->c}}</span>
-    </label>
-    <label for="option_4"  class="flex border p-3 mt-2 rounded-2xl shadow-2xl">
-        <input id="option_4" class="form-radio text-blue-500" type="radio" value="d" name="option">
-        <span class="text-green-900 pl-2" >{{$mcqData->d}} </span>
-    </label>
-    <button type="submit" class="w-full bg-blue-500 rounded-xl px-4 py-2 text-white" >
-    Submit Answer and Next
-    </button>
-
-
-    </form>
-  </div>
-
-</div>
-<x-footer-user></x-footer-user>
+                @foreach ($options as $key => $value)
+                <label for="option_{{ $i }}" 
+                       class="flex items-center p-4 border border-gray-200 rounded-xl cursor-pointer 
+                              hover:bg-blue-50 transition duration-150 shadow-md has-[:checked]:border-green-500 has-[:checked]:bg-green-50"
+                >
+                    <input 
+                        id="option_{{ $i }}" 
+                        class="form-radio h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300" 
+                        type="radio" 
+                        value="{{ $key }}" 
+                        name="option"
+                    >
+                    <span class="text-gray-900 pl-4 text-base font-medium">{{ $value }}</span>
+                </label>
+                @php $i++; @endphp
+                @endforeach
+                
+                <div class="pt-6">
+                    <button 
+                        type="submit" 
+                        class="w-full bg-blue-600 text-white font-bold text-lg rounded-lg px-4 py-3 
+                               hover:bg-blue-700 transition duration-200 shadow-xl"
+                    >
+                        Nộp Câu Trả Lời & Câu Tiếp Theo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <x-footer-user></x-footer-user>
 </body>
 </html>
